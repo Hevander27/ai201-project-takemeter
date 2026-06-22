@@ -11,3 +11,6 @@ venv/
 # Secrets — never commit API keys
 .env
 *.key
+
+# Fine-tuned model export (large; keep out of git)
+takemeter-model/

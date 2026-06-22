@@ -218,4 +218,8 @@ note in the report anything Claude suggested that I had to discard.
 - [ ] Inter-annotator reliability (2nd labeler on 30+, Cohen's kappa)
 - [ ] Confidence calibration
 - [ ] Error pattern analysis (systematic, beyond individual errors)
-- [ ] Deployed interface (post in → label + confidence out)
+- [x] **Deployed interface (post in → label + confidence out)** — building this.
+  Two pieces: `interface.py` (CLI, loads the saved fine-tuned model and classifies
+  a comment from the command line) and `gradio_app.py` (a shareable web UI that
+  shows the predicted label and per-class confidence bars). Both run the same
+  fine-tuned DistilBERT. Documented in the README "Deployed Interface" section.

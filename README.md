@@ -311,6 +311,8 @@ ai201-project-takemeter/
 ├── takemeter_dataset.csv                              # 230 labeled comments
 ├── evaluation_results.json                            # exported from the Colab notebook
 ├── confusionMatrix.png                                # exported from the Colab notebook
+├── interface.py                                       # CLI: comment in -> label + confidence
+├── gradio_app.py                                      # web UI (stretch: deployed interface)
 └── Copy_of_ai201_project3_takemeter_starter_clean.ipynb   # the Colab notebook
 ```
 
@@ -325,8 +327,59 @@ ai201-project-takemeter/
 
 ---
 
-## 9. Stretch Features
+## 9. Deployed Interface (Stretch)
 
-None completed yet. *(If you do any — inter-annotator reliability, confidence
-calibration, systematic error analysis, or a deployed interface — document them
-here.)*
+A simple interface that takes a new comment, runs it through the fine-tuned
+model, and shows the predicted label and confidence. Two versions are committed:
+
+- **`interface.py`** — command-line tool.
+- **`gradio_app.py`** — a web UI with per-class confidence bars.
+
+### First: save the model out of Colab
+After training, run this once in the notebook, then download the `takemeter-model`
+folder into this repo:
+```python
+model.save_pretrained("takemeter-model")
+tokenizer.save_pretrained("takemeter-model")
+```
+
+### CLI (`interface.py`)
+```bash
+pip install transformers torch
+python interface.py "Chase Brown is a top 10 back, people just won't admit it"
+# → hot_take  (confidence 0.81)
+#   analysis=0.12  hot_take=0.81  reaction=0.07
+
+python interface.py        # interactive: type comments, blank line to quit
+```
+Set `MODEL_DIR=/path/to/takemeter-model` if the model lives elsewhere.
+
+### Web UI (`gradio_app.py`)
+```bash
+pip install gradio transformers torch
+python gradio_app.py        # opens http://127.0.0.1:7860
+```
+
+### Quickest option — run the web UI directly in Colab (no download needed)
+Reuses the in-memory `model` and `tokenizer` right after training:
+```python
+!pip -q install gradio
+import gradio as gr, torch, torch.nn.functional as F
+ID2LABEL = {0: "analysis", 1: "hot_take", 2: "reaction"}
+def predict(text):
+    enc = tokenizer(text, return_tensors="pt", truncation=True, padding=True).to(model.device)
+    with torch.no_grad():
+        probs = F.softmax(model(**enc).logits, dim=-1)[0]
+    return {ID2LABEL[i]: float(probs[i]) for i in range(len(probs))}
+gr.Interface(predict,
+    gr.Textbox(lines=3, label="r/fantasyfootball comment"),
+    gr.Label(num_top_classes=3, label="Predicted discourse type"),
+    title="TakeMeter").launch(share=True)   # share=True gives a public link
+```
+
+## 10. Other Stretch Features
+
+Not attempted: inter-annotator reliability, confidence calibration, and
+systematic error-pattern analysis. (The README's error analysis in §5.4 and the
+confident-error discussion in §5.5 touch on error patterns and calibration
+informally, but a full treatment is left as future work.)
