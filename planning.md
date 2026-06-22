@@ -216,7 +216,12 @@ note in the report anything Claude suggested that I had to discard.
 
 ## Stretch features (update before starting any)
 - [ ] Inter-annotator reliability (2nd labeler on 30+, Cohen's kappa)
-- [ ] Confidence calibration
+- [x] **Confidence calibration** — bin test predictions by confidence and check
+  whether higher-confidence predictions are actually more accurate (and compute
+  Expected Calibration Error). Early signal from the error list: several wrong
+  predictions carry 0.94–0.98 confidence, so the model looks **overconfident** —
+  the calibration analysis quantifies this. Documented in README "Confidence
+  Calibration" section.
 - [ ] Error pattern analysis (systematic, beyond individual errors)
 - [x] **Deployed interface (post in → label + confidence out)** — building this.
   Two pieces: `interface.py` (CLI, loads the saved fine-tuned model and classifies

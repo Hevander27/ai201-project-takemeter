@@ -377,9 +377,70 @@ gr.Interface(predict,
     title="TakeMeter").launch(share=True)   # share=True gives a public link
 ```
 
-## 10. Other Stretch Features
+## 10. Confidence Calibration (Stretch)
 
-Not attempted: inter-annotator reliability, confidence calibration, and
-systematic error-pattern analysis. (The README's error analysis in §5.4 and the
-confident-error discussion in §5.5 touch on error patterns and calibration
-informally, but a full treatment is left as future work.)
+**Question:** are the model's confidence scores meaningful — does a 0.9-confident
+prediction get it right more often than a 0.6-confident one?
+
+**Early signal (from the error list):** several *wrong* predictions carry very
+high confidence — 0.94, 0.97, and 0.98 — which suggests the model is
+**overconfident**, especially on the reaction→hot_take errors. The analysis below
+quantifies that.
+
+Run this cell in Colab after Section 4 to bin the test set by confidence and
+compute Expected Calibration Error (ECE):
+
+```python
+import torch, torch.nn.functional as F
+import numpy as np
+
+texts  = test_df["text"].tolist()        # adjust to your test dataframe/column
+labels = test_df["label"].tolist()
+label2id = {"analysis":0, "hot_take":1, "reaction":2}
+
+confs, correct = [], []
+for t, true in zip(texts, labels):
+    enc = tokenizer(t, return_tensors="pt", truncation=True, padding=True).to(model.device)
+    with torch.no_grad():
+        p = F.softmax(model(**enc).logits, dim=-1)[0]
+    pred = int(p.argmax())
+    confs.append(float(p[pred])); correct.append(int(pred == label2id[true]))
+
+confs, correct = np.array(confs), np.array(correct)
+bins = [(0.0,0.6),(0.6,0.8),(0.8,0.9),(0.9,1.01)]
+print("| Confidence bin | N | Accuracy | Avg confidence |")
+print("|---|---:|---:|---:|")
+ece = 0.0
+for lo, hi in bins:
+    m = (confs >= lo) & (confs < hi)
+    if m.sum() == 0:
+        print(f"| {lo:.1f}–{hi:.1f} | 0 | — | — |"); continue
+    acc, avg = correct[m].mean(), confs[m].mean()
+    ece += (m.sum()/len(confs)) * abs(acc - avg)
+    print(f"| {lo:.1f}–{hi:.1f} | {int(m.sum())} | {acc:.2f} | {avg:.2f} |")
+print(f"\nExpected Calibration Error (ECE): {ece:.3f}")
+```
+
+### Results *(paste from the cell above)*
+
+| Confidence bin | N | Accuracy | Avg confidence |
+|---|---:|---:|---:|
+| 0.0–0.6 | ‹FILL› | ‹FILL› | ‹FILL› |
+| 0.6–0.8 | ‹FILL› | ‹FILL› | ‹FILL› |
+| 0.8–0.9 | ‹FILL› | ‹FILL› | ‹FILL› |
+| 0.9–1.0 | ‹FILL› | ‹FILL› | ‹FILL› |
+
+**Expected Calibration Error: ‹FILL›**
+
+**Interpretation** *(write 2–3 sentences once you have the numbers):* a
+well-calibrated model has accuracy ≈ average confidence in each bin. If the
+top bin (0.9–1.0) has accuracy well below 0.9, the model is overconfident — which
+the high-confidence errors already hint at. Note the test set is only 35 examples,
+so bins are small and the estimate is noisy; this is a directional check, not a
+precise calibration curve.
+
+## 11. Other Stretch Features
+
+Not attempted: inter-annotator reliability and a separate systematic
+error-pattern analysis (though §5.4 documents the dominant reaction→hot_take
+pattern). Left as future work.
