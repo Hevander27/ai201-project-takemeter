@@ -225,33 +225,28 @@ label and confidence:
 
 | Comment | True | Predicted | Confidence | Correct? |
 |---|---|---|---:|:--:|
+| "Kelce had 3 touchdowns, 90 something receptions, the 3 tds was incredibly low compared to his other stats and his history." | analysis | analysis | 0.99 | ✅ |
 | "It's like shouting into the void at this point. They're going to surprise some people this year." | reaction | hot_take | 0.97 | ❌ |
 | "They've paid him, CMC, Kittle...Warner? They can't have much more $$$, right? RIGHT?!" | reaction | hot_take | 0.78 | ❌ |
 | "So we cherry pick 3 near the bottom? … or is this loose correlation?" | analysis | hot_take | 0.94 | ❌ |
-| ‹add a correct analysis example — see snippet below› | analysis | analysis | ‹FILL› | ✅ |
-| ‹add a correct hot_take or reaction example› | ‹FILL› | ‹FILL› | ‹FILL› | ✅ |
+| "Niners are finished" | reaction | hot_take | 0.97 | ❌ |
 
-*Why a correct prediction is reasonable:* on a comment like *"Kelce had 3 TDs,
-90-something receptions; the 3 TDs was incredibly low compared to his history"*
-the model predicts **analysis** with high confidence — correctly, because the
-comment cites specific receiving stats and contrasts them against the player's
-historical baseline, which is exactly the evidence-backed reasoning that defines
-`analysis`.
+Overall test accuracy is 0.74; these five are chosen to show the model's
+confidence behavior, including its dominant failure mode.
 
-> To fill the two ✅ rows with real numbers, run this in Colab after Section 4:
-> ```python
-> import torch, torch.nn.functional as F
-> samples = [
->     "Kelce had 3 touchdowns, 90 something receptions, the 3 tds was incredibly low compared to his history.",
->     "Niners are finished",
-> ]
-> enc = tokenizer(samples, return_tensors="pt", padding=True, truncation=True).to(model.device)
-> with torch.no_grad():
->     probs = F.softmax(model(**enc).logits, dim=-1)
-> id2label = {0:"analysis",1:"hot_take",2:"reaction"}
-> for s, p in zip(samples, probs):
->     i = int(p.argmax()); print(f"{id2label[i]:9s} {p[i]:.2f}  | {s[:60]}")
-> ```
+*Why the correct prediction is reasonable:* on the Kelce comment the model
+predicts **analysis** with 0.99 confidence — correctly, because the comment cites
+specific receiving stats (3 TDs, ~90 receptions) and contrasts them against the
+player's historical baseline. That is exactly the evidence-backed reasoning that
+defines `analysis`, and the high confidence is justified.
+
+*Why the confident errors are revealing:* the four misses are all predicted
+`hot_take` with high confidence (0.78–0.97) when the truth is `reaction` (or, in
+the cherry-pick case, `analysis`). The model isn't hedging on these — it is
+confidently wrong, which confirms it has internalized "short, claim-shaped text =
+hot_take" rather than the feeling-vs-claim distinction. "Niners are finished" is
+the cleanest example: pure emotional reaction, no claim, predicted `hot_take` at
+0.97.
 
 ### 5.6 What the model learned vs. what I intended
 
